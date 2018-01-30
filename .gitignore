@@ -3,3 +3,6 @@
 ################################################################################
 
 /.vs
+/SpotifyPlaylistComparer/.vs/SpotifyPlaylistComparer/v15
+/SpotifyPlaylistComparer/SpotifyPlaylistComparer/bin/Debug/netcoreapp2.0
+/SpotifyPlaylistComparer/SpotifyPlaylistComparer/obj
