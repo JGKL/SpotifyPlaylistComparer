@@ -1,5 +1,7 @@
 ﻿using System;
-using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using SpotifyPlaylistComparer.Controllers;
 using SpotifyPlaylistComparer.Models;
 
@@ -13,7 +15,13 @@ namespace PlaylistComparer
 
             var spotifyApiController = new SpotifyApiController();
 
-            var authenticateResult = spotifyApiController.SetClientCredentialsAuthToken().GetAwaiter().GetResult();
+            var task = spotifyApiController.SetClientCredentialsAuthToken();
+
+            Console.Write("Getting authentication token");
+
+            Console.WriteLine();
+
+            var authenticateResult = task.Result;
 
             if (authenticateResult)
             {
@@ -21,60 +29,79 @@ namespace PlaylistComparer
 
                 Console.WriteLine("What is the user-id of the user who created the first playlist:");
                 var userIdOne = Console.ReadLine();
+
                 Console.WriteLine("What is the playlist-id of the first playlist:");
                 var playlistIdOne = Console.ReadLine();
+
                 Console.WriteLine("What is the user-id of the user who created the second playlist:");
                 var userIdTwo = Console.ReadLine();
+
                 Console.WriteLine("What is the playlist-id of the second playlist:");
                 var playlistIdTwo = Console.ReadLine();
+
                 Console.WriteLine("Do you want to see songs which only exist in the first playlist or in the second playlist [press 1 or 2]");
                 var whichPlaylist = Console.ReadLine();
 
-                var jsonPlaylistOne = spotifyApiController.GetPublicPlaylist(userIdOne, playlistIdOne, 0, 100).GetAwaiter().GetResult();
-                var playlistOne = JsonConvert.DeserializeObject<Playlist>(jsonPlaylistOne);
-                if (playlistOne.total > 100)
-                {
-                    for (int i = 1; i < Math.Ceiling(playlistOne.total / (decimal)100); i++)
-                    {
-                        jsonPlaylistOne = spotifyApiController.GetPublicPlaylist(userIdOne, playlistIdOne, 100 * i, 100).GetAwaiter().GetResult();
-                        playlistOne.items.AddRange(JsonConvert.DeserializeObject<Playlist>(jsonPlaylistOne).items);
-                    }
-                }
+                Console.Write("Comparing playlists ");
 
-                var jsonPlaylistTwo = spotifyApiController.GetPublicPlaylist(userIdTwo, playlistIdTwo, 0, 100).GetAwaiter().GetResult();
-                var playlistTwo = JsonConvert.DeserializeObject<Playlist>(jsonPlaylistTwo);
-                if (playlistTwo.total > 100)
-                {
-                    for (int i = 1; i < Math.Ceiling(playlistTwo.total / (decimal)100); i++)
-                    {
-                        jsonPlaylistTwo = spotifyApiController.GetPublicPlaylist(userIdTwo, playlistIdTwo, 100 * i, 100).GetAwaiter().GetResult();
-                        playlistTwo.items.AddRange(JsonConvert.DeserializeObject<Playlist>(jsonPlaylistTwo).items);
-                    }
-                }
+                var uniqueTracksInPlaylist = new List<Track>();
 
-                Console.WriteLine("Playlists comparen ...");
+                var workerThread = new Thread(new ThreadStart(() => {
+                    var playlistOne = spotifyApiController.GetPublicPlaylist(userIdOne, playlistIdOne);
+                    var playlistTwo = spotifyApiController.GetPublicPlaylist(userIdTwo, playlistIdTwo);
 
-                if (whichPlaylist == "1")
-                {
-                    foreach (var itemOne in playlistOne.items)
+                    if (whichPlaylist == "1")
                     {
-                        if (!playlistTwo.items.Contains(itemOne))
-                            Console.WriteLine($"Exists only in playlist one: {itemOne.track.name}");
+                        foreach (var track in playlistOne.items)
+                        {
+                            var result = playlistTwo.items.FirstOrDefault(x => x.track.name == track.track.name);
+
+                            if (result == null)
+                                uniqueTracksInPlaylist.Add(track.track);
+                        }
                     }
-                }
-                else if (whichPlaylist == "2")
-                {
-                    foreach (var itemTwo in playlistTwo.items)
+                    else if (whichPlaylist == "2")
                     {
-                        if (!playlistOne.items.Contains(itemTwo))
-                            Console.WriteLine($"Exists only in playlist two: {itemTwo.track.name}");
+                        foreach (var track in playlistTwo.items)
+                        {
+                            var result = playlistOne.items.FirstOrDefault(x => x.track.name == track.track.name);
+
+                            if (result == null)
+                                uniqueTracksInPlaylist.Add(track.track);
+                        }
+                    }
+                }));
+
+                workerThread.Start();
+
+                var start = DateTime.Now;
+                while (workerThread.ThreadState != ThreadState.Stopped)
+                {
+                    var end = DateTime.Now;
+                    var dif = (end - start).TotalMilliseconds;
+
+                    if (dif > 1000)
+                    {
+                        start = end;
+                        Console.Write(".");
+                    }
+                };
+
+                Console.WriteLine();
+
+                if (uniqueTracksInPlaylist.Count > 0)
+                {
+                    var index = 0;
+                    foreach (var track in uniqueTracksInPlaylist)
+                    {
+                        index++;
+                        Console.WriteLine($"{index}. {track.name}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("NAN");
+                    Console.WriteLine("Geen verschillen gevonden");
                 }
-
 
                 Console.WriteLine("Job done");
             }

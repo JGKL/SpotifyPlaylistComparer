@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using SpotifyPlaylistComparer.Models;
 
 namespace SpotifyPlaylistComparer.Controllers
 {
@@ -31,8 +32,8 @@ namespace SpotifyPlaylistComparer.Controllers
         //see https://developer.spotify.com/web-api/authorization-guide/#client_credentials_flow
         public async Task<bool> SetClientCredentialsAuthToken()
         {
-            var spotifyClient = "a399fad8e81842ff8e7c5988e725ac77";
-            var spotifySecret = "de677cae72d74219a634932b43bbe9b3";
+            var spotifyClient = "";
+            var spotifySecret = "";
 
             var parameters = new Dictionary<string, string> { { "grant_type", "client_credentials" } };
             var encodedContent = new FormUrlEncodedContent(parameters);
@@ -53,15 +54,40 @@ namespace SpotifyPlaylistComparer.Controllers
             return false;
         }
 
-        public async Task<string> GetPublicPlaylist(string userId, string playlistId, int offset, int limit)
+        private async Task<Playlist> GetPublicPlaylistChunk(string userId, string playlistId, int offset, int limit)
         {
             var endpoint = $"/v1/users/{userId}/playlists/{playlistId}/tracks?offset={offset}&limit={limit}";
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken.access_token);
             var response = await _httpClient.GetAsync($"{_baseUrl}{endpoint}");
 
-            var result = await response.Content.ReadAsStringAsync();
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            var result = JsonConvert.DeserializeObject<Playlist>(responseString);
+
             return result;
+        }
+
+        public Playlist GetPublicPlaylist(string userId, string playlistId)
+        {
+            var playlistTasks = new List<Task<Playlist>>();
+
+            var playlist = GetPublicPlaylistChunk(userId, playlistId, 0, 100).Result;
+            if (playlist.total > 100)
+            {
+                for (int i = 1; i < Math.Ceiling(playlist.total / (decimal)100); i++)
+                {
+                    playlistTasks.Add(GetPublicPlaylistChunk(userId, playlistId, 100 * i, 100));
+                }
+            }
+
+            var restOfPlaylist = Task.WhenAll(playlistTasks).Result;
+            foreach (var playlistChunk in restOfPlaylist)
+            {
+                playlist.items.AddRange(playlistChunk.items);
+            }
+
+            return playlist;
         }
     }
 }
