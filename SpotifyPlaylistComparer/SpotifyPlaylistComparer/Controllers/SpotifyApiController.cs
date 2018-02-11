@@ -32,6 +32,7 @@ namespace SpotifyPlaylistComparer.Controllers
         //see https://developer.spotify.com/web-api/authorization-guide/#client_credentials_flow
         public async Task<bool> SetClientCredentialsAuthToken()
         {
+            //Set your personal spotify client key and secret key here
             var spotifyClient = "";
             var spotifySecret = "";
 
