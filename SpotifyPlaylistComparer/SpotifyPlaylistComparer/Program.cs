@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using SpotifyPlaylistComparer.Controllers;
+using SpotifyPlaylistComparer.Extensions;
 using SpotifyPlaylistComparer.Models;
 
 namespace PlaylistComparer
@@ -11,7 +13,7 @@ namespace PlaylistComparer
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Started");
+            Console.WriteLine("Started\r\n");
 
             var spotifyApiController = new SpotifyApiController();
 
@@ -25,19 +27,18 @@ namespace PlaylistComparer
 
             if (authenticateResult)
             {
-                Console.WriteLine("Succesfully received token");
+                Console.WriteLine("Succesfully received token\r\n");
 
-                Console.WriteLine("What is the user-id of the user who created the first playlist:");
-                var userIdOne = Console.ReadLine();
+                var playlistOneMessage = "Enter the first playlist it's Spotity URI:";
+                Console.WriteLine(playlistOneMessage);
+                var playlistOneSpotifyUri = Console.ReadLine();
 
-                Console.WriteLine("What is the playlist-id of the first playlist:");
-                var playlistIdOne = Console.ReadLine();
+                var playlistTwoMessage = "Enter the seconds playlist it's Spotify URI:";
+                Console.WriteLine(playlistTwoMessage);
+                var playlistTwoSpotifyUri = Console.ReadLine();
 
-                Console.WriteLine("What is the user-id of the user who created the second playlist:");
-                var userIdTwo = Console.ReadLine();
-
-                Console.WriteLine("What is the playlist-id of the second playlist:");
-                var playlistIdTwo = Console.ReadLine();
+                var playlistOneData = playlistOneSpotifyUri.SpotifyUriToDataConverter();
+                var playlistTwoData = playlistTwoSpotifyUri.SpotifyUriToDataConverter();
 
                 Console.WriteLine("Do you want to see songs which only exist in the first playlist or in the second playlist [press 1 or 2]");
                 var whichPlaylist = Console.ReadLine();
@@ -47,8 +48,8 @@ namespace PlaylistComparer
                 var uniqueTracksInPlaylist = new List<Track>();
 
                 var workerThread = new Thread(new ThreadStart(() => {
-                    var playlistOne = spotifyApiController.GetPublicPlaylist(userIdOne, playlistIdOne);
-                    var playlistTwo = spotifyApiController.GetPublicPlaylist(userIdTwo, playlistIdTwo);
+                    var playlistOne = spotifyApiController.GetPublicPlaylist(playlistOneData[4], playlistOneData[8]);
+                    var playlistTwo = spotifyApiController.GetPublicPlaylist(playlistTwoData[4], playlistTwoData[8]);
 
                     if (whichPlaylist == "1")
                     {

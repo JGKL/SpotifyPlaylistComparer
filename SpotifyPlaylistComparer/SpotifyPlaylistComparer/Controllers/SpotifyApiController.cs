@@ -33,8 +33,8 @@ namespace SpotifyPlaylistComparer.Controllers
         public async Task<bool> SetClientCredentialsAuthToken()
         {
             //Set your personal spotify client key and secret key here
-            var spotifyClient = "";
-            var spotifySecret = "";
+            var spotifyClient = "a399fad8e81842ff8e7c5988e725ac77";
+            var spotifySecret = "44f8cff3b9f744b284d43030474ccd0b";
 
             var parameters = new Dictionary<string, string> { { "grant_type", "client_credentials" } };
             var encodedContent = new FormUrlEncodedContent(parameters);
