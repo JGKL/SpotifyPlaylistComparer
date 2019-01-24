@@ -55,7 +55,7 @@ namespace PlaylistComparer
                     {
                         foreach (var track in playlistOne.items)
                         {
-                            var result = playlistTwo.items.FirstOrDefault(x => x.track.name == track.track.name);
+                            var result = playlistTwo.items.FirstOrDefault(x => x.track.name.ToLower() == track.track.name.ToLower());
 
                             if (result == null)
                                 uniqueTracksInPlaylist.Add(track.track);
@@ -65,7 +65,7 @@ namespace PlaylistComparer
                     {
                         foreach (var track in playlistTwo.items)
                         {
-                            var result = playlistOne.items.FirstOrDefault(x => x.track.name == track.track.name);
+                            var result = playlistOne.items.FirstOrDefault(x => x.track.name.ToLower() == track.track.name.ToLower());
 
                             if (result == null)
                                 uniqueTracksInPlaylist.Add(track.track);
